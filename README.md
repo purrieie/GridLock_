@@ -127,6 +127,7 @@ is a two-line change, not a refactor.
 
 Data processing flow 
 '''
+
                         [Raw Bounding Box from YOLO]
  
                                     │
