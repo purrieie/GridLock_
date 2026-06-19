@@ -30,11 +30,10 @@ YOLO_MODEL_PATH = "yolo11m.pt"
 
 # Minimum detection confidence. Detections below this are discarded by
 # YOLO/the tracker before they ever reach our code.
-CONFIDENCE_THRESHOLD = 0.25
+CONFIDENCE_THRESHOLD = 0.2
 
-# Intersection-over-Union threshold used by YOLO's internal NMS
 # (Non-Max Suppression) to merge overlapping duplicate boxes.
-IOU_THRESHOLD = 0.3
+IOU_THRESHOLD = 0.3 #A lower IOU_THRESHOLD means more aggressive rejection and discarding of overlapping bounding boxes
 
 # Which YOLO class IDs we care about for this project.
 # These indices match the default COCO dataset class list that pretrained
@@ -44,8 +43,8 @@ TARGET_CLASSES = {
     1: "bicycle",
     2: "car",
     3: "motorcycle",
-    5: "bus",
-    7: "truck",
+    4: "bus",
+    5: "truck",
 }
 
 IMAGE_SIZE = 1280  # 640 YOLOv8 default image size. Change if you fine-tune on a different size.
@@ -57,7 +56,7 @@ IMAGE_SIZE = 1280  # 640 YOLOv8 default image size. Change if you fine-tune on a
 # built-in default. If you later want to tune BoT-SORT's internal
 # parameters (e.g. re-identification thresholds), copy that YAML into this
 # project folder, edit it, and point this variable to your local copy.
-TRACKER_CONFIG = "bytetrack.yaml"  # botsort.yaml, bytetrack.yaml is preferred
+TRACKER_CONFIG = "custom_botsort.yaml"  # botsort.yaml, bytetrack.yaml is preferred
 
 # ---------------------------------------------------------------------------
 # OUTPUT SETTINGS
@@ -87,7 +86,6 @@ VIDEO_CODEC = "mp4v"
 # So: lower alpha = MORE smoothing but MORE lag (bad for braking detection)
 #     higher alpha = LESS smoothing but LESS lag
 #
-# 0.05 (previous value) was far too low -- velocity was so lagged it would
 # still show forward motion 2-3 seconds after a vehicle stopped.
 # 0.25 is a reasonable starting point: filters single-frame spikes
 # while still responding to real acceleration/braking within ~4 frames.
