@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GridLock</title>
+<style>
+  :root{
+    --bg:#f4f6f3; --surface:#ffffff; --ink:#1a2421; --muted:#7c8a83;
+    --line:#e8ece9; --line2:#f0f3f1;
+    --green:#2e7d52; --green-d:#256544; --green-soft:#e9f4ee; --green-ink:#1f5d3c;
+    --red:#c0473d; --red-soft:#fbecea;
+    --amber:#c08a2d;
+    --sidebar:#ffffff;
+    --radius:16px; --radius-sm:10px;
+    --sans:"Inter",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --shadow:0 1px 3px rgba(26,36,33,.04),0 6px 24px rgba(26,36,33,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  .app{display:flex;min-height:100vh}
+
+  /* ---- sidebar ---- */
+  .sidebar{width:230px;background:var(--sidebar);border-right:1px solid var(--line);
+    padding:22px 16px;display:flex;flex-direction:column;flex-shrink:0;position:sticky;
+    top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 22px}
+  .brand .logo{width:32px;height:32px;border-radius:9px;
+    background:linear-gradient(135deg,var(--green),var(--green-d));
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    font-weight:800;font-size:15px}
+  .brand .name{font-weight:700;font-size:16px;letter-spacing:-.2px}
+  .navlabel{font-size:11px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--muted);padding:14px 10px 6px;font-weight:600}
+  .navitem{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:10px;
+    color:var(--muted);font-weight:500;font-size:13.5px;cursor:pointer;margin-bottom:2px}
+  .navitem .dot{width:18px;height:18px;border-radius:5px;border:1.8px solid currentColor;
+    opacity:.55;flex-shrink:0}
+  .navitem.active{background:var(--green-soft);color:var(--green-ink);font-weight:600}
+  .navitem.active .dot{opacity:1;background:currentColor;border-color:currentColor}
+  .sidebar .spacer{flex:1}
+  .promo{background:var(--green-ink);color:#fff;border-radius:14px;padding:16px;
+    font-size:12.5px;line-height:1.45}
+  .promo b{font-size:13.5px;display:block;margin-bottom:4px}
+  .promo .v{font-family:var(--mono);opacity:.7;font-size:11px;margin-top:8px}
+
+  /* ---- main ---- */
+  .main{flex:1;min-width:0}
+  .topbar{display:flex;align-items:center;gap:16px;padding:20px 32px;
+    border-bottom:1px solid var(--line);background:var(--surface)}
+  .topbar h1{margin:0;font-size:21px;font-weight:700;letter-spacing:-.4px}
+  .topbar .crumb{font-size:13px;color:var(--muted);margin-top:2px}
+  .topbar .who{margin-left:auto;display:flex;align-items:center;gap:10px;
+    font-size:13px;color:var(--muted)}
+  .topbar .av{width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg,#3a9e68,#256544);color:#fff;display:flex;
+    align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+  .content{padding:28px 32px 64px;max-width:1080px}
+
+  /* ---- card ---- */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-bottom:22px;overflow:hidden}
+  .card-head{display:flex;align-items:center;gap:13px;padding:18px 22px 16px}
+  .card-head .step{width:26px;height:26px;border-radius:8px;background:var(--green-soft);
+    color:var(--green-ink);font-weight:700;font-size:12px;display:flex;
+    align-items:center;justify-content:center;flex-shrink:0}
+  .card-head h2{margin:0;font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .card-head .status{margin-left:auto;font-size:12px;color:var(--muted);
+    font-family:var(--mono)}
+  .card-body{padding:0 22px 22px}
+
+  /* ---- upload ---- */
+  .drop{border:1.6px dashed var(--line);border-radius:var(--radius-sm);padding:38px;
+    text-align:center;cursor:pointer;transition:.16s;background:#fbfdfb}
+  .drop:hover{border-color:var(--green);background:var(--green-soft)}
+  .drop input{display:none}
+  .drop .ic{width:44px;height:44px;border-radius:12px;background:var(--green-soft);
+    color:var(--green-ink);margin:0 auto 12px;display:flex;align-items:center;
+    justify-content:center;font-size:20px;font-weight:700}
+  .drop .big{font-size:14px;font-weight:600;margin-bottom:4px}
+  .drop .sub{color:var(--muted);font-size:13px}
+
+  /* ---- buttons ---- */
+  button{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;
+    color:var(--ink);padding:9px 16px;border-radius:10px;cursor:pointer;
+    transition:.13s;font-weight:600}
+  button:hover{border-color:var(--green);color:var(--green-ink)}
+  button.primary{background:var(--green);color:#fff;border-color:var(--green);
+    padding:10px 22px}
+  button.primary:hover{background:var(--green-d);color:#fff}
+  button.primary:disabled,button:disabled{opacity:.45;cursor:not-allowed;
+    background:#eef1ef;color:var(--muted);border-color:var(--line)}
+  .toolbar{display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap}
+
+  .instructions{background:var(--green-soft);border-radius:var(--radius-sm);
+    padding:13px 16px;font-size:13px;color:var(--green-ink);margin-bottom:18px}
+  .canvas-shell{display:inline-block;max-width:100%;border-radius:var(--radius-sm);
+    overflow:hidden;background:#000;border:1px solid var(--line)}
+  canvas{display:block;max-width:100%;cursor:crosshair}
+  .legend{display:flex;gap:20px;font-size:12px;color:var(--muted);margin-top:13px;
+    align-items:center}
+  .legend i{display:inline-block;width:16px;height:10px;border-radius:3px;
+    vertical-align:middle;margin-right:7px}
+  .hint{font-size:13px;color:var(--muted)}
+  .controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:18px;
+    padding-top:18px;border-top:1px solid var(--line2)}
+  label.field{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:9px;
+    font-weight:500}
+  input[type=number]{width:62px;background:#fff;border:1px solid var(--line);
+    color:var(--ink);border-radius:8px;padding:7px 9px;font:inherit;font-weight:600}
+  .hidden{display:none}
+
+  /* ---- KPIs + charts ---- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .kpi{border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px}
+  .kpi.hero{background:linear-gradient(135deg,var(--green),var(--green-d));color:#fff;border:none}
+  .kpi .n{font-size:28px;font-weight:800;letter-spacing:-.6px;line-height:1}
+  .kpi .l{font-size:11.5px;margin-top:7px;font-weight:600;color:var(--muted)}
+  .kpi.hero .l{color:rgba(255,255,255,.85)}
+  .kpi .sub{font-size:11px;margin-top:3px;color:var(--muted)}
+  .kpi.hero .sub{color:rgba(255,255,255,.75)}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .chartbox{border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px}
+  .chartbox.wide{grid-column:1 / -1}
+  .chartbox-head{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;
+    align-items:baseline;gap:8px}
+  .chartbox-head span{font-size:11px;font-weight:500;color:var(--muted)}
+  .chartbox canvas{max-height:200px}
+  .chart-wrap{position:relative;height:200px}
+  .chart-wrap.tall{height:220px}
+  @media(max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}}
+
+  /* ---- stats ---- */
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:6px}
+  .stat{border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px 20px;
+    position:relative;overflow:hidden}
+  .stat.green{background:linear-gradient(135deg,var(--green),var(--green-d));color:#fff;
+    border:none}
+  .stat .n{font-size:34px;font-weight:800;line-height:1;letter-spacing:-1px}
+  .stat .l{font-size:12px;margin-top:9px;font-weight:600;opacity:.92}
+  .stat:not(.green) .l{color:var(--muted)}
+  .stat.green .l{opacity:.85}
+  .stat .ring{position:absolute;right:-22px;top:-22px;width:90px;height:90px;
+    border-radius:50%;border:14px solid rgba(255,255,255,.13)}
+
+  /* ---- tabs ---- */
+  .tabs{display:flex;gap:6px;margin:24px 0 0;flex-wrap:wrap}
+  .tab{padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;border-radius:10px;
+    border:1px solid transparent;color:var(--muted);background:none}
+  .tab:hover{background:var(--line2);color:var(--ink)}
+  .tab.active{background:var(--green-soft);color:var(--green-ink)}
+  .tab .badge{display:inline-block;min-width:18px;padding:1px 7px;margin-left:7px;
+    font-family:var(--mono);font-size:11px;border-radius:9px;background:rgba(0,0,0,.06);
+    color:inherit}
+  .tab.active .badge{background:var(--green);color:#fff}
+  .tabpanel{border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 18px 16px;
+    margin-top:14px}
+  .tabpanel-head{display:flex;align-items:center;padding:12px 0;
+    border-bottom:1px solid var(--line2);margin-bottom:8px}
+  .tabpanel-head .desc{font-size:12.5px;color:var(--muted)}
+  .dl-btn{margin-left:auto;font-size:12px;font-weight:600;color:var(--green-ink);
+    text-decoration:none;border:1px solid var(--line);padding:7px 13px;border-radius:9px;
+    background:var(--green-soft)}
+  .dl-btn:hover{background:#dcefe3}
+
+  /* ---- table ---- */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2)}
+  thead th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    font-weight:700}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--green-soft)}
+  td.mono{font-family:var(--mono);font-size:12.5px}
+  .empty{padding:34px;text-align:center;color:var(--muted);font-size:13px}
+
+  /* ---- videos ---- */
+  .video-card{border:1px solid var(--line);border-radius:var(--radius-sm);margin-bottom:18px;
+    overflow:hidden}
+  .video-card:last-child{margin-bottom:0}
+  .video-head{display:flex;align-items:flex-start;gap:14px;padding:15px 18px;
+    border-bottom:1px solid var(--line2)}
+  .video-title{font-size:13.5px;font-weight:700}
+  .video-desc{font-size:12px;color:var(--muted);margin-top:3px;max-width:640px}
+  .video-card video{display:block;width:100%;background:#000}
+
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid #cdddd3;
+    border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;
+    vertical-align:middle;margin-right:7px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media(max-width:820px){.sidebar{display:none}.content{padding:20px}}
+  .setting-row{display:flex;align-items:center;gap:16px;padding:16px 0;
+    border-bottom:1px solid var(--line2)}
+  .setting-row:last-child{border-bottom:none}
+  .setting-row>div:first-child{flex:1}
+  .setting-title{font-size:13.5px;font-weight:600}
+  .setting-desc{font-size:12.5px;color:var(--muted);margin-top:3px;max-width:560px}
+  .help-list{margin:0;padding-left:20px;font-size:13.5px;line-height:1.9}
+  .help-list li{padding-left:4px}
+  .mono{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">GL</div>
+      <div class="name">GridLock</div>
+    </div>
+    <div class="navlabel">Workspace</div>
+    <div class="navitem active" data-nav="analysis"><span class="dot"></span>Analysis</div>
+    <div class="navitem" data-nav="footage"><span class="dot"></span>Footage</div>
+    <div class="navitem" data-nav="reports"><span class="dot"></span>Reports</div>
+    <div class="navlabel">General</div>
+    <div class="navitem" data-nav="settings"><span class="dot"></span>Settings</div>
+    <div class="navitem" data-nav="help"><span class="dot"></span>Help</div>
+    <div class="spacer"></div>
+    <div class="promo">
+      <b>Static-camera mode</b>
+      Draw the zone once — it holds across every frame of the clip.
+      <div class="v">GRIDLOCK · v1.0</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1>Violation Analysis</h1>
+        <div class="crumb">Upload footage, mark a zone, review detected crossings.</div>
+      </div>
+      <div class="who">
+        Local session
+        <div class="av">JS</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="card" id="card-upload">
+        <div class="card-head">
+          <span class="step">1</span><h2>Source Footage</h2>
+          <span class="status" id="upload-status">Awaiting upload</span>
+        </div>
+        <div class="card-body">
+          <label class="drop" id="drop">
+            <input type="file" id="file" accept="video/mp4">
+            <div class="ic">+</div>
+            <div class="big" id="drop-label">Select or drop an MP4 file</div>
+            <div class="sub">Single static-camera clip. Its first frame becomes your drawing board.</div>
+          </label>
+        </div>
+      </div>
+
+      <div class="card hidden" id="card-draw">
+        <div class="card-head">
+          <span class="step">2</span><h2>Define Enforcement Zone</h2>
+          <span class="status" id="draw-status"></span>
+        </div>
+        <div class="card-body">
+          <div class="instructions">
+            Click points around the violation zone, then double-click or press <b>Close Zone</b> to seal it.
+            Any vehicle that crosses out of the sealed zone is recorded.
+          </div>
+          <div class="toolbar">
+            <button id="closezone">Close Zone</button>
+            <button id="undo">Undo Point</button>
+            <button id="clear">Clear All</button>
+          </div>
+          <div class="canvas-shell"><canvas id="cv"></canvas></div>
+          <div class="legend">
+            <span><i style="background:rgba(192,71,61,.3)"></i>Violation zone</span>
+          </div>
+          <div class="controls">
+            <label class="field">Track sensitivity (min frames)
+              <input type="number" id="ghost" value="5" min="1" max="60">
+            </label>
+            <button class="primary" id="run" disabled>Run Analysis</button>
+            <span id="run-status" class="hint"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="card-overview">
+        <div class="card-head">
+          <span class="step">3</span><h2>Overview</h2>
+          <span class="status" id="overview-meta"></span>
+        </div>
+        <div class="card-body">
+          <div class="kpis" id="kpis"></div>
+          <div class="charts">
+            <div class="chartbox wide">
+              <div class="chartbox-head">Traffic Inflow Over Time<span>new vehicles entering, per interval</span></div>
+              <div class="chart-wrap"><canvas id="chartFlow"></canvas></div>
+            </div>
+            <div class="chartbox">
+              <div class="chartbox-head">Vehicle Mix<span>by class</span></div>
+              <div class="chart-wrap"><canvas id="chartClass"></canvas></div>
+            </div>
+            <div class="chartbox">
+              <div class="chartbox-head">Speed Distribution<span>px/sec, moving</span></div>
+              <div class="chart-wrap"><canvas id="chartSpeed"></canvas></div>
+            </div>
+            <div class="chartbox">
+              <div class="chartbox-head">Violations by Class<span>zone crossings</span></div>
+              <div class="chart-wrap"><canvas id="chartViol"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="card-results">
+        <div class="card-head">
+          <span class="step">4</span><h2>Analysis Report</h2>
+          <span class="status" id="report-meta"></span>
+        </div>
+        <div class="card-body">
+          <div class="stats" id="stats"></div>
+          <div class="tabs" id="tabs"></div>
+          <div id="tabcontent"></div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="card-videos">
+        <div class="card-head">
+          <span class="step">5</span><h2>Annotated Footage</h2>
+        </div>
+        <div class="card-body">
+          <div id="videos"></div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="card-settings">
+        <div class="card-head"><h2>Settings</h2></div>
+        <div class="card-body">
+          <div class="setting-row">
+            <div><div class="setting-title">Track sensitivity</div>
+              <div class="setting-desc">Minimum frames a vehicle must be tracked before it counts. Higher = fewer false detections.</div></div>
+            <input type="number" id="ghost2" value="5" min="1" max="60">
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-title">Default flow direction</div>
+              <div class="setting-desc">Reference for analysis. The static camera means this stays fixed across the clip.</div></div>
+            <span class="hint">Set per-zone on the canvas</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-title">Output folder</div>
+              <div class="setting-desc">Where generated CSVs and videos are written on disk.</div></div>
+            <span class="hint mono">output/</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="card-help">
+        <div class="card-head"><h2>Help</h2></div>
+        <div class="card-body">
+          <ol class="help-list">
+            <li><b>Upload</b> a single static-camera MP4 clip under <b>Analysis</b>.</li>
+            <li><b>Draw a zone</b>: click points around the area to monitor, then double-click (or press Close Zone) to seal it.</li>
+            <li><b>Run Analysis</b>. GridLock detects and tracks every vehicle, then flags any that cross out of your zone.</li>
+            <li>Review the <b>Overview</b> charts, open the <b>Reports</b> tables, and watch the <b>annotated videos</b> — all downloadable.</li>
+          </ol>
+          <p class="hint">The camera is assumed fixed, so a zone drawn on the first frame holds for the entire clip.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+
+// ---- sidebar navigation ----
+// analysis = the working flow; others reveal/scroll to the relevant section.
+const NAV = {
+  analysis: ["card-upload","card-draw","card-overview","card-results","card-videos"],
+  footage:  ["card-videos"],
+  reports:  ["card-results"],
+  settings: ["card-settings"],
+  help:     ["card-help"],
+};
+let analysisDone = false;  // becomes true after a successful run
+
+function switchNav(view){
+  document.querySelectorAll(".navitem").forEach(n=>
+    n.classList.toggle("active", n.dataset.nav===view));
+
+  const all = ["card-upload","card-draw","card-overview","card-results","card-videos","card-settings","card-help"];
+  const show = NAV[view] || NAV.analysis;
+  all.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(view==="analysis"){
+      // restore normal flow: upload always; the rest only if analysis ran
+      if(id==="card-upload" || id==="card-draw") el.classList.remove("hidden");
+      else el.classList.toggle("hidden", !analysisDone);
+    }else{
+      el.classList.toggle("hidden", !show.includes(id));
+    }
+  });
+
+  // for footage/reports, if nothing has run yet, tell the user
+  if((view==="footage"||view==="reports") && !analysisDone){
+    const el = document.getElementById(show[0]);
+    if(el){ el.classList.remove("hidden");
+      el.querySelector(".card-body").dataset.placeholder="1"; }
+  }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+document.querySelectorAll(".navitem").forEach(n=>
+  n.addEventListener("click",()=>switchNav(n.dataset.nav)));
+
+let IMG = new Image(), ORIG_W=0, ORIG_H=0, SCALE=1;
+let zonePts = [], zoneClosed = false;
+const cv = $("#cv"), ctx = cv.getContext("2d");
+
+$("#file").addEventListener("change", async e => {
+  const f = e.target.files[0]; if(!f) return;
+  $("#drop-label").textContent = f.name;
+  $("#upload-status").innerHTML = '<span class="spinner"></span>Reading first frame';
+  const fd = new FormData(); fd.append("video", f);
+  const r = await fetch("/upload", {method:"POST", body:fd});
+  const d = await r.json();
+  if(d.error){ $("#upload-status").textContent = "Error: "+d.error; return; }
+  ORIG_W=d.width; ORIG_H=d.height;
+  IMG.onload = () => {
+    const maxW = Math.min(960, ORIG_W);
+    SCALE = maxW / ORIG_W;
+    cv.width = ORIG_W*SCALE; cv.height = ORIG_H*SCALE;
+    redraw();
+    $("#card-draw").classList.remove("hidden");
+    $("#upload-status").textContent = `Loaded · ${ORIG_W}×${ORIG_H}`;
+    $("#draw-status").textContent = "Draw zone to begin";
+  };
+  IMG.src = d.frame_url + "?t=" + Date.now();
+});
+
+$("#closezone").onclick = ()=>{ if(zonePts.length>=3){ zoneClosed=true; redraw(); checkReady(); } };
+$("#undo").onclick = ()=>{ zoneClosed=false; zonePts.pop(); redraw(); checkReady(); };
+$("#clear").onclick = ()=>{ zonePts=[]; zoneClosed=false; redraw(); checkReady(); };
+
+cv.addEventListener("click", e=>{
+  if(zoneClosed) return;
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX-r.left)*(cv.width/r.width);
+  const y = (e.clientY-r.top)*(cv.height/r.height);
+  zonePts.push({x,y}); redraw(); checkReady();
+});
+cv.addEventListener("dblclick", ()=>{ if(zonePts.length>=3){ zoneClosed=true; redraw(); checkReady(); } });
+
+function redraw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(IMG.src) ctx.drawImage(IMG,0,0,cv.width,cv.height);
+  drawZone();
+}
+function drawZone(){
+  if(zonePts.length===0) return;
+  ctx.lineWidth=2.5; ctx.strokeStyle="#c0473d"; ctx.fillStyle="rgba(192,71,61,.2)";
+  ctx.beginPath();
+  zonePts.forEach((p,i)=> i? ctx.lineTo(p.x,p.y): ctx.moveTo(p.x,p.y));
+  if(zoneClosed) ctx.closePath();
+  ctx.stroke();
+  if(zoneClosed) ctx.fill();
+  ctx.fillStyle="#c0473d";
+  zonePts.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,4,0,7); ctx.fill(); });
+}
+function checkReady(){
+  const sealed = zoneClosed && zonePts.length>=3;
+  $("#run").disabled = !sealed;
+  $("#draw-status").textContent = sealed ? "Zone sealed" : zonePts.length+" point(s)";
+}
+
+$("#run").onclick = async ()=>{
+  $("#run").disabled=true;
+  $("#run-status").innerHTML='<span class="spinner"></span>Running detection &amp; tracking — this may take a minute.';
+  const toOrig = p => [Math.round(p.x/SCALE), Math.round(p.y/SCALE)];
+  const zone = (zoneClosed && zonePts.length>=3) ? zonePts.map(toOrig) : null;
+  const body = {zone, ghost_min_frames: +$("#ghost").value};
+  try{
+    const r = await fetch("/process",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body)});
+    const d = await r.json();
+    if(d.error){ $("#run-status").textContent="Error: "+d.error; $("#run").disabled=false; return; }
+    showResults(d);
+    $("#run-status").textContent="Analysis complete.";
+  }catch(err){ $("#run-status").textContent="Error: "+err; }
+  $("#run").disabled=false;
+};
+
+const TABDEFS = [
+  {key:"zone_violations", label:"Zone Crossings",
+   desc:"Vehicles that entered and then exited the enforcement zone.",
+   cols:["tracker_id","vehicle_class","exited_zone_at_sec","exit_x","exit_y","speed_px_sec"]},
+  {key:"zone_coords", label:"Zone Coordinates",
+   desc:"The enforcement-zone polygon vertices, in original pixel coordinates.",
+   cols:["point_index","x","y"]},
+];
+
+function showResults(d){
+  analysisDone = true;
+  document.querySelectorAll(".navitem").forEach(n=>
+    n.classList.toggle("active", n.dataset.nav==="analysis"));
+  renderOverview(d.analytics||null);
+  $("#card-results").classList.remove("hidden");
+  const s=d.summary;
+  $("#report-meta").textContent = "Source: " + (d.csv||"—");
+  $("#stats").innerHTML = `
+    <div class="stat green"><div class="ring"></div><div class="n">${s.zone_violations}</div><div class="l">Zone Crossings Detected</div></div>
+    <div class="stat"><div class="n">${s.real_vehicles}</div><div class="l">Vehicles Tracked</div></div>`;
+  const datasets = {
+    zone_violations: d.zone_violations||[],
+    zone_coords: (d.zone_coords||[]).map((p,i)=>({point_index:i, x:p[0], y:p[1]})),
+  };
+  let tabsHtml="", panelsHtml="";
+  TABDEFS.forEach((t,idx)=>{
+    const rows = datasets[t.key]||[];
+    tabsHtml += `<button class="tab ${idx===0?'active':''}" data-tab="${idx}">${t.label}
+      <span class="badge">${rows.length}</span></button>`;
+    const file = d.files[t.key];
+    let body;
+    if(!rows.length){ body = `<div class="empty">No records in this category.</div>`; }
+    else{
+      let tb = "<table><thead><tr>"+t.cols.map(c=>`<th>${c}</th>`).join("")+"</tr></thead><tbody>";
+      rows.forEach(r=>{ tb+="<tr>"+t.cols.map(c=>`<td class=\"mono\">${r[c]??""}</td>`).join("")+"</tr>"; });
+      tb+="</tbody></table>"; body = tb;
+    }
+    panelsHtml += `<div class="tabpanel ${idx===0?'':'hidden'}" data-panel="${idx}">
+        <div class="tabpanel-head"><span class="desc">${t.desc}</span>
+          ${file?`<a class="dl-btn" href="/download/${file}">Download CSV</a>`:''}
+        </div>${body}</div>`;
+  });
+  $("#tabs").innerHTML = tabsHtml;
+  $("#tabcontent").innerHTML = panelsHtml;
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.onclick = ()=>{
+      const i = t.dataset.tab;
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+      document.querySelectorAll(".tabpanel").forEach(p=>
+        p.classList.toggle("hidden", p.dataset.panel!==i));
+    };
+  });
+  renderVideos(d.videos||{});
+  $("#card-results").scrollIntoView({behavior:"smooth"});
+}
+
+function renderVideos(v){
+  const wrap = $("#videos");
+  let html = "";
+  if(v.zone){
+    html += videoCard("Zone Overlay",
+      "Enforcement zone drawn on every frame. Vehicles that cross out of the zone are boxed in red and labelled.",
+      v.zone);
+  }
+  if(v.annotated){
+    html += videoCard("Detection &amp; Tracking",
+      "The full annotated output: every detected vehicle with its bounding box and tracker ID.",
+      v.annotated);
+  }
+  if(v.zone_error){ html += `<div class="empty">Zone video could not be generated: ${v.zone_error}</div>`; }
+  if(!html){ $("#card-videos").classList.add("hidden"); return; }
+  $("#card-videos").classList.remove("hidden");
+  wrap.innerHTML = html;
+}
+function videoCard(title, desc, fname){
+  return `<div class="video-card">
+    <div class="video-head">
+      <div><div class="video-title">${title}</div><div class="video-desc">${desc}</div></div>
+      <a class="dl-btn" href="/video-download/${fname}">Download MP4</a>
+    </div>
+    <video controls preload="metadata" src="/video/${fname}"></video>
+  </div>`;
+}
+
+// ---- dashboard overview ----
+const GREEN="#2e7d52", GREEN_D="#256544", AMBER="#c08a2d", RED="#c0473d", MUTED="#7c8a83";
+let CHARTS={};
+function destroyCharts(){ Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(e){}}); CHARTS={}; }
+
+function renderOverview(a){
+  if(!a){ $("#card-overview").classList.add("hidden"); return; }
+  $("#card-overview").classList.remove("hidden");
+  const k=a.kpis;
+  $("#overview-meta").textContent = k.duration_sec+"s clip";
+  $("#kpis").innerHTML = `
+    <div class="kpi hero"><div class="n">${k.violations}</div><div class="l">Zone Violations</div><div class="sub">${k.violation_rate}% of all vehicles</div></div>
+    <div class="kpi"><div class="n">${k.vehicles}</div><div class="l">Vehicles Tracked</div><div class="sub">ghost-filtered</div></div>
+    <div class="kpi"><div class="n">${k.peak_inflow}</div><div class="l">Peak Inflow</div><div class="sub">vehicles / interval</div></div>
+    <div class="kpi"><div class="n">${k.duration_sec}s</div><div class="l">Footage Length</div><div class="sub">analysed</div></div>`;
+
+  destroyCharts();
+  const gridC="#f0f3f1", font={family:"Inter",size:11};
+  Chart.defaults.font.family="Inter"; Chart.defaults.color=MUTED;
+
+  // flow area chart
+  CHARTS.flow=new Chart($("#chartFlow"),{type:"line",
+    data:{labels:a.flow.labels,datasets:[{data:a.flow.values,borderColor:GREEN,
+      backgroundColor:"rgba(46,125,82,.12)",fill:true,tension:.4,pointRadius:0,
+      borderWidth:2.5,pointHoverRadius:4}]},
+    options:{plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:gridC},beginAtZero:true,
+        ticks:{precision:0}}},maintainAspectRatio:false}});
+
+  // class donut
+  const cb=a.class_breakdown, cl=Object.keys(cb), cv=Object.values(cb);
+  CHARTS.cls=new Chart($("#chartClass"),{type:"doughnut",
+    data:{labels:cl,datasets:[{data:cv,backgroundColor:[GREEN,AMBER,RED,"#5b8c9e","#9a9a9a"],
+      borderWidth:0}]},
+    options:{cutout:"62%",plugins:{legend:{position:"bottom",
+      labels:{boxWidth:10,boxHeight:10,padding:12,font}}},maintainAspectRatio:false}});
+
+  // speed bars
+  CHARTS.spd=new Chart($("#chartSpeed"),{type:"bar",
+    data:{labels:a.speed.labels,datasets:[{data:a.speed.values,backgroundColor:GREEN,
+      borderRadius:5,maxBarThickness:34}]},
+    options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},
+      y:{grid:{color:gridC},beginAtZero:true}},maintainAspectRatio:false}});
+
+  // violations by class bars
+  const vb=a.violations_by_class, vl=Object.keys(vb), vv=Object.values(vb);
+  CHARTS.viol=new Chart($("#chartViol"),{type:"bar",
+    data:{labels:vl.length?vl:["none"],datasets:[{data:vv.length?vv:[0],
+      backgroundColor:RED,borderRadius:5,maxBarThickness:34}]},
+    options:{indexAxis:"y",plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:gridC},beginAtZero:true,ticks:{precision:0}},
+        y:{grid:{display:false}}},maintainAspectRatio:false}});
+}
+</script>
+</body>
+</html>

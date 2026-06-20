@@ -47,7 +47,7 @@ TARGET_CLASSES = {
     5: "truck",
 }
 
-IMAGE_SIZE = 1280  # 640 YOLOv8 default image size. Change if you fine-tune on a different size.
+IMAGE_SIZE = 640  # 640 YOLOv8 default image size. Change if you fine-tune on a different size.
 # ---------------------------------------------------------------------------
 # TRACKER SETTINGS (BoT-SORT)
 # ---------------------------------------------------------------------------

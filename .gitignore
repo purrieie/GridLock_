@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+venv/
+ui_uploads/
+ui_frames/
+output/
+*.mp4
+*.pt
+.DS_Store

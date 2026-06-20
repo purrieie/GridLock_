@@ -1,0 +1,7 @@
+python trajectory_collector.py --video test.mp4
+
+python rider_safety_layer.py --video Test.mp4 --csv 
+
+output/trajectory_data_20260619_225802.csv
+
+python export_csvs.py --csv output/trajectory_data_20260620_101246 --expected-heading 270 --ghost-min-frames 3
